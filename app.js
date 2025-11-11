@@ -3,38 +3,6 @@ let prodCards = document.getElementById("prodCards")
 let searchInp = document.getElementById("searchInp")
 let searchBtn = document.getElementById("searchBtn")
 
-// ============== Default 6 meals ================
-
-fetch("https://www.themealdb.com/api/json/v1/1/search.php?s=")
-.then(res => res.json())
-.then(data => {
-
-    let meals = data.meals.slice(0, 6)
-    renderCards(meals)
-
-});
-
-// ============== Search result ================
-
-searchBtn.addEventListener("click", () => {
-
-    let userQuery = searchInp.value.trim();
-    if (userQuery === "") return;
-
-    fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${userQuery}`)
-    .then(res => res.json())
-    .then(data => {
-
-        if (!data.meals) {
-            prodCards.innerHTML = `<p class='text-white text-xl'>No recipes found!</p>`;
-            return;
-        }
-        renderCards(data.meals);
-
-    });
-    
-});
-
 // ============== Map Recipe Cards ================
 
 function renderCards(recipes) {
@@ -92,6 +60,59 @@ function renderCards(recipes) {
 
     });
     
+    // Save last recipes
+    localStorage.setItem("lastRecipes" , JSON.stringify(recipes) || [])
+    
 }
 
+// ============== Load Last Recipes ================
 
+let lastRecipes = JSON.parse( localStorage.getItem("lastRecipes") || "[]" )
+
+if (lastRecipes.length > 0) {
+    searchInp.value = localStorage.getItem("lastSearch") || "";
+    renderCards(lastRecipes);
+}
+else {
+    // Default 6 meals
+    fetch("https://www.themealdb.com/api/json/v1/1/search.php?s=")
+    .then(res => res.json())
+    .then(data => renderCards(data.meals.slice(0, 6)));
+}
+
+// ============== Search Function ================
+
+function handleSearch() {
+    
+    const userQuery = searchInp.value.trim();
+    if (!userQuery) return;
+
+    fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${userQuery}`)
+    .then(res => res.json())
+    .then(data => {
+
+        if (!data.meals) {
+            prodCards.innerHTML = `
+            <div class="flex flex-row justify-center col-span-12 my-10">
+                <p class='text-white text-xl'>No recipes found!</p>
+            </div>
+            `;
+            return;
+        }
+
+        renderCards(data.meals);
+        localStorage.setItem("lastSearch", userQuery)
+
+    })
+    .catch(err => console.log(err));
+                
+}
+
+// ============== Event Listeners ================
+
+searchBtn.addEventListener('click', handleSearch);
+searchInp.addEventListener('keydown', (e) => {
+
+    if(e.key === 'Enter') handleSearch()
+
+});
